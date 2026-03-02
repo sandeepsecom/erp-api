@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { AmcModule } from './modules/amc/amc.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SalesModule } from './modules/sales/sales.module';
     CrmModule,
     SalesModule,
     ProductsModule,
+    AmcModule,
   ],
 })
 export class AppModule {}
