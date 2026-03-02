@@ -20,8 +20,6 @@ export class AmcService {
       ];
     }
 
-    // Auto update status based on dates
-    const today = new Date();
     const contracts = await this.prisma.amcContract.findMany({
       where,
       include: {
@@ -32,12 +30,8 @@ export class AmcService {
       orderBy: { endDate: 'asc' },
     });
 
-    // Calculate dynamic status
     return {
-      data: contracts.map((c) => ({
-        ...c,
-        status: this.computeStatus(c),
-      })),
+      data: contracts.map((c) => ({ ...c, status: this.computeStatus(c) })),
       meta: { total: contracts.length },
     };
   }
@@ -47,7 +41,6 @@ export class AmcService {
       where: { deletedAt: null },
     });
 
-    const today = new Date();
     let active = 0, pendingRenewal = 0, renewed = 0, cancelled = 0;
     let totalMonthly = 0;
 
@@ -62,25 +55,40 @@ export class AmcService {
       }
     });
 
-    return {
-      data: { active, pendingRenewal, renewed, cancelled, totalMonthly },
-    };
+    return { data: { active, pendingRenewal, renewed, cancelled, totalMonthly } };
   }
 
   async get(id: string) {
     const contract = await this.prisma.amcContract.findUnique({
       where: { id },
-      include: {
-        contact: true,
-      },
+      include: { contact: true },
     });
     return { data: { ...contract, status: this.computeStatus(contract) } };
   }
 
+  async generateContractNumber(companyId: string): Promise<string> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const fyStart = month >= 4 ? year : year - 1;
+    const fyEnd = fyStart + 1;
+    const fy = `${fyStart}-${String(fyEnd).slice(2)}`;
+
+    const count = await this.prisma.amcContract.count({
+      where: { companyId },
+    });
+
+    const seq = String(count + 1).padStart(3, '0');
+    return `AMC/${fy}/${seq}`;
+  }
+
   async create(body: any) {
-    const { contactId, contractNumber, startDate, endDate, monthlyValue,
-      annualValue, sites, servicesCctv, servicesSecurity, servicesFire,
-      renewalReminderDays, notes, companyId } = body;
+    const { contactId, startDate, endDate, monthlyValue,
+      annualValue, sites, servicesCctv, servicesFire,
+      servicesAlarm, servicesSprinkler, servicesPa,
+      renewalReminderDays, notes, companyId, quotationId } = body;
+
+    const contractNumber = await this.generateContractNumber(companyId);
 
     const contract = await this.prisma.amcContract.create({
       data: {
@@ -93,11 +101,14 @@ export class AmcService {
         annualValue: annualValue || 0,
         sites,
         servicesCctv: servicesCctv || false,
-        servicesSecurity: servicesSecurity || false,
         servicesFire: servicesFire || false,
+        servicesAlarm: servicesAlarm || false,
+        servicesSprinkler: servicesSprinkler || false,
+        servicesPa: servicesPa || false,
         renewalReminderDays: renewalReminderDays || 30,
         notes,
         status: 'ACTIVE',
+        quotationId: quotationId || null,
       },
     });
 
@@ -148,8 +159,7 @@ export class AmcService {
     const reminderDate = new Date(endDate);
     reminderDate.setDate(reminderDate.getDate() - (contract.renewalReminderDays || 30));
 
-    if (today >= reminderDate && today <= endDate) return 'PENDING_RENEWAL';
-    if (today > endDate) return 'PENDING_RENEWAL';
+    if (today >= reminderDate) return 'PENDING_RENEWAL';
     return 'ACTIVE';
   }
 }

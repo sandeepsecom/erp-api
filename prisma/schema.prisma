@@ -120,6 +120,7 @@ model Company {
   salesOrders   SalesOrder[]
   docSequences  DocSequence[]
   products      Product[]
+  amcContracts  AmcContract[]
 
   @@map("companies")
 }
@@ -263,6 +264,7 @@ model Contact {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   deletedAt       DateTime?
+  amcContracts  AmcContract[]
 
   company     Company      @relation(fields: [companyId], references: [id])
   leads       Lead[]
@@ -410,6 +412,9 @@ model Quotation {
   @@index([companyId, state])
   @@index([contactId])
   @@map("quotations")
+
+  quotationType     String    @default("SALES")
+  amcContractId     String?
 }
 
 model QuotationLine {
@@ -498,4 +503,33 @@ model SalesOrderLine {
 
   @@index([salesOrderId])
   @@map("sales_order_lines")
+}
+
+model AmcContract {
+  id                  String    @id @default(uuid())
+  companyId           String
+  contractNumber      String
+  contactId           String
+  startDate           DateTime
+  endDate             DateTime
+  monthlyValue        Decimal   @default(0) @db.Decimal(12, 2)
+  annualValue         Decimal   @default(0) @db.Decimal(12, 2)
+  sites               String?
+  servicesCctv        Boolean   @default(false)
+  servicesFire        Boolean   @default(false)
+  servicesAlarm       Boolean   @default(false)
+  servicesSprinkler   Boolean   @default(false)
+  servicesPa          Boolean   @default(false)
+  renewalReminderDays Int       @default(30)
+  status              String    @default("ACTIVE")
+  quotationId         String?
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  company   Company   @relation(fields: [companyId], references: [id])
+  contact   Contact   @relation(fields: [contactId], references: [id])
+
+  @@map("amc_contracts")
 }
