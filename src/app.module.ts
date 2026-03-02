@@ -1,3 +1,4 @@
+import { ProductsModule } from './modules/products/products.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -18,6 +19,7 @@ import { SalesModule } from './modules/sales/sales.module';
     CoreModule,
     CrmModule,
     SalesModule,
+    ProductsModule,
   ],
 })
 export class AppModule {}
