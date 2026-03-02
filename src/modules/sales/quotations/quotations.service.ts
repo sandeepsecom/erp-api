@@ -104,6 +104,7 @@ export class QuotationsService {
         deliveryTerms: dto.deliveryTerms,
         notes: dto.notes,
         internalNotes: dto.internalNotes,
+        quotationType: dto.quotationType || 'SALES',
         subtotal: totals.subtotal,
         discountAmount: totals.discountAmount,
         taxAmount: totals.taxAmount,
@@ -143,14 +144,15 @@ export class QuotationsService {
   }
 
   async update(companyId: string, id: string, dto: any) {
-    await this.assertDraftState(companyId, id);
+    const quotation = await this.prisma.quotation.findFirst({ where: { id, companyId } });
+    if (!quotation) throw new NotFoundException('Quotation not found');
 
     const calculatedLines = (dto.lines || []).map((line: any) =>
       this.marginEngine.calculateLine(line),
     );
     const totals = this.marginEngine.calculateTotals(calculatedLines);
 
-    const quotation = await this.prisma.quotation.update({
+    const updated = await this.prisma.quotation.update({
       where: { id },
       data: {
         contactId: dto.contactId,
@@ -159,6 +161,7 @@ export class QuotationsService {
         deliveryTerms: dto.deliveryTerms,
         notes: dto.notes,
         internalNotes: dto.internalNotes,
+        quotationType: dto.quotationType,
         subtotal: totals.subtotal,
         discountAmount: totals.discountAmount,
         taxAmount: totals.taxAmount,
@@ -194,7 +197,7 @@ export class QuotationsService {
       },
     });
 
-    return { data: quotation };
+    return { data: updated };
   }
 
   async send(companyId: string, id: string, userId: string) {
