@@ -1,9 +1,15 @@
-import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AmcService } from './amc.service';
+import { AmcReminderService } from './amc-reminder.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('amc')
+@UseGuards(JwtAuthGuard)
 export class AmcController {
-  constructor(private amc: AmcService) {}
+  constructor(
+    private amc: AmcService,
+    private reminderService: AmcReminderService,
+  ) {}
 
   @Get()
   list(@Query() query: any) {
@@ -38,5 +44,10 @@ export class AmcController {
   @Patch(':id/cancel')
   cancel(@Param('id') id: string) {
     return this.amc.cancel(id);
+  }
+
+  @Post('test-reminders')
+  testReminders() {
+    return this.reminderService.sendReminders();
   }
 }
