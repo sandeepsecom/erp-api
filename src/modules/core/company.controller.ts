@@ -19,10 +19,11 @@ export class CompanyController {
   @Patch()
   async updateMyCompany(@CurrentUser() user: any, @Body() body: any) {
     const allowed = [
-      'legalName', 'gstin', 'pan', 'phone', 'email', 'logoUrl',
-      'addressLine1', 'city', 'state', 'pincode', 'country',
-      'bankName', 'bankAccountNumber', 'bankIfsc', 'bankAccountName', 'bankBranch',
-    ];
+  'legalName', 'gstin', 'pan', 'phone', 'email', 'logoUrl',
+  'addressLine1', 'city', 'state', 'pincode', 'country',
+  'bankName', 'bankAccountNumber', 'bankIfsc', 'bankAccountName', 'bankBranch',
+  'sendgridApiKey', 'emailFromAddress', 'emailFromName', 'internalEmailCC',
+];
     const data: any = {};
     allowed.forEach((key) => { if (body[key] !== undefined) data[key] = body[key]; });
 
