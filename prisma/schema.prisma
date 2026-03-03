@@ -237,6 +237,13 @@ model Product {
   isService      Boolean  @default(false)
   taxRate        Decimal  @default(18) @db.Decimal(5, 2)
   hsnCode        String?
+  sacCode           String?
+  category          String?
+  inputTaxRate      Decimal  @default(18) @db.Decimal(5, 2)
+  outputTaxRate     Decimal  @default(18) @db.Decimal(5, 2)
+  datasheetUrl      String?
+  trackSerial       Boolean  @default(false)
+  currentStock      Int      @default(0)
   tallyStockItem String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
@@ -246,9 +253,27 @@ model Product {
   company        Company         @relation(fields: [companyId], references: [id])
   quotationLines QuotationLine[]
   orderLines     SalesOrderLine[]
+serialNumbers  SerialNumber[]
 
   @@index([companyId])
   @@map("products")
+}
+
+model SerialNumber {
+  id          String   @id @default(uuid())
+  productId   String
+  companyId   String
+  serialNo    String
+  status      String   @default("IN_STOCK")
+  orderId     String?
+  contactId   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@unique([companyId, serialNo])
+  @@map("serial_numbers")
 }
 
 model Contact {
