@@ -187,11 +187,3 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 }
-```
-
-Then push:
-```
-cd /Users/sandeeppatil/Documents/erp-system/api
-git add .
-git commit -m "Add switch-company endpoint"
-git push origin main
