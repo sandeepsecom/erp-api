@@ -1,3 +1,4 @@
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AmcService } from './amc.service';
 import { AmcReminderService } from './amc-reminder.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -18,7 +19,6 @@ export class AmcController {
   @Get('summary')
   summary() {
     return this.amc.summary();
-
   }
 
   @Get(':id')
@@ -51,7 +51,8 @@ export class AmcController {
     return this.reminderService.sendReminders();
   }
 
-@Delete('reminder-logs')
+  @Delete('reminder-logs')
   clearReminderLogs() {
     return this.amc.clearReminderLogs();
-  }}
+  }
+}
