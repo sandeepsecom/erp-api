@@ -112,6 +112,10 @@ model Company {
   bankIfsc          String?
   bankAccountName   String?
   bankBranch        String?
+  sendgridApiKey    String?
+  emailFromAddress  String?
+  emailFromName     String?
+  internalEmailCC   String[]
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -535,6 +539,18 @@ model AmcContract {
 
   company   Company   @relation(fields: [companyId], references: [id])
   contact   Contact   @relation(fields: [contactId], references: [id])
-
+reminderLogs AmcReminderLog[]
   @@map("amc_contracts")
+}
+
+model AmcReminderLog {
+  id           String   @id @default(uuid())
+  contractId   String
+  daysBeforeExpiry Int
+  sentAt       DateTime @default(now())
+  sentToEmails String[]
+  contract     AmcContract @relation(fields: [contractId], references: [id])
+
+  @@unique([contractId, daysBeforeExpiry])
+  @@map("amc_reminder_logs")
 }
