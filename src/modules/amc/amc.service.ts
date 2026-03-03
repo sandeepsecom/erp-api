@@ -162,4 +162,8 @@ export class AmcService {
     if (today >= reminderDate) return 'PENDING_RENEWAL';
     return 'ACTIVE';
   }
+async clearReminderLogs() {
+  const result = await this.prisma.amcReminderLog.deleteMany({});
+  return { data: { deleted: result.count } };
+}
 }
