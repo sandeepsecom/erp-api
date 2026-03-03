@@ -137,7 +137,7 @@ export class ProductsController {
   @Post(':id/serials')
   async addSerials(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
     const serialNos: string[] = body.serialNumbers || [body.serialNo];
-    const created = [];
+    const created: any[] = [];
     for (const serialNo of serialNos) {
       if (!serialNo?.trim()) continue;
       try {
