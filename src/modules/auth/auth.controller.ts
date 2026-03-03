@@ -8,13 +8,14 @@ class LoginDto {
   password: string;
   companySlug?: string;
 }
-
 class RefreshDto {
   refreshToken: string;
 }
-
 class LogoutDto {
   refreshToken: string;
+}
+class SwitchCompanyDto {
+  companySlug: string;
 }
 
 @Controller('auth')
@@ -43,5 +44,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: any) {
     return { data: user };
+  }
+
+  @Post('switch-company')
+  @UseGuards(JwtAuthGuard)
+  switchCompany(@CurrentUser() user: any, @Body() dto: SwitchCompanyDto) {
+    return this.authService.switchCompany(user.id, dto.companySlug);
   }
 }

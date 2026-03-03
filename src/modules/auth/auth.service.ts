@@ -14,9 +14,6 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string, companySlug?: string) {
-    console.log('LOGIN CALLED with email:', email);
-    console.log('DB URL starts with:', process.env.DATABASE_URL?.substring(0, 40));
-
     const user = await this.prisma.user.findUnique({
       where: { email: (email || '').toLowerCase().trim() },
       include: {
@@ -28,12 +25,10 @@ export class AuthService {
       },
     });
 
-    console.log('User found:', user ? user.email : 'NOT FOUND');
     if (!user) throw new UnauthorizedException('Invalid email or password');
     if (user.status !== 'ACTIVE') throw new UnauthorizedException('Account is inactive');
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-    console.log('Password match:', passwordMatch);
     if (!passwordMatch) throw new UnauthorizedException('Invalid email or password');
 
     let activeCompany = user.userCompanies.find((uc) => uc.isDefault);
@@ -82,6 +77,61 @@ export class AuthService {
     };
   }
 
+  async switchCompany(userId: string, companySlug: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userCompanies: {
+          include: {
+            company: { select: { id: true, slug: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const targetCompany = user.userCompanies.find((uc) => uc.company.slug === companySlug);
+    if (!targetCompany) throw new UnauthorizedException('No access to that company');
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      activeCompanyId: targetCompany.companyId,
+      role: targetCompany.role,
+      permissions: targetCompany.permissions,
+    };
+
+    const accessToken = this.jwt.sign(payload);
+    const refreshToken = await this.createRefreshToken(user.id);
+
+    return {
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          activeCompany: {
+            id: targetCompany.companyId,
+            slug: targetCompany.company.slug,
+            name: targetCompany.company.name,
+            role: targetCompany.role,
+          },
+          companies: user.userCompanies.map((uc) => ({
+            id: uc.companyId,
+            slug: uc.company.slug,
+            name: uc.company.name,
+            role: uc.role,
+            isDefault: uc.isDefault,
+          })),
+        },
+      },
+    };
+  }
+
   async refresh(refreshTokenValue: string) {
     const tokenHash = this.hashToken(refreshTokenValue);
     const stored = await this.prisma.refreshToken.findUnique({
@@ -97,7 +147,10 @@ export class AuthService {
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token invalid or expired');
     }
-    await this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
     const uc = stored.user.userCompanies[0];
     const payload = {
       id: stored.user.id,
@@ -114,7 +167,10 @@ export class AuthService {
 
   async logout(refreshTokenValue: string) {
     const tokenHash = this.hashToken(refreshTokenValue);
-    await this.prisma.refreshToken.updateMany({ where: { tokenHash, revokedAt: null }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
     return { data: { message: 'Logged out successfully' } };
   }
 
@@ -131,3 +187,11 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 }
+```
+
+Then push:
+```
+cd /Users/sandeeppatil/Documents/erp-system/api
+git add .
+git commit -m "Add switch-company endpoint"
+git push origin main
