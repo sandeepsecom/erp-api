@@ -1,15 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-
-  constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('SENDGRID_API_KEY');
-    if (apiKey) sgMail.setApiKey(apiKey);
-  }
 
   async sendAmcReminderToCustomer(params: {
     toEmail: string;
@@ -22,8 +16,9 @@ export class EmailService {
     companyName: string;
     companyEmail: string;
     companyPhone: string;
+    sendgridApiKey: string;
   }) {
-    const { toEmail, contractNumber, customerName, expiryDate, daysLeft, annualValue, companyName, companyEmail, companyPhone } = params;
+    const { toEmail, contractNumber, customerName, expiryDate, daysLeft, annualValue, companyName, companyEmail, companyPhone, sendgridApiKey } = params;
 
     const expiryStr = expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
     const subject = daysLeft === 0
@@ -68,7 +63,7 @@ export class EmailService {
       </div>
     `;
 
-    await this.send({ to: toEmail, subject, html, fromName: companyName, fromEmail: companyEmail });
+    await this.send({ to: toEmail, subject, html, fromName: companyName, fromEmail: companyEmail, sendgridApiKey });
   }
 
   async sendAmcReminderToTeam(params: {
@@ -80,8 +75,9 @@ export class EmailService {
     annualValue: number;
     companyName: string;
     companyEmail: string;
+    sendgridApiKey: string;
   }) {
-    const { toEmails, contractNumber, customerName, expiryDate, daysLeft, annualValue, companyName, companyEmail } = params;
+    const { toEmails, contractNumber, customerName, expiryDate, daysLeft, annualValue, companyName, companyEmail, sendgridApiKey } = params;
 
     const expiryStr = expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
     const subject = daysLeft === 0
@@ -125,16 +121,23 @@ export class EmailService {
     `;
 
     for (const toEmail of toEmails) {
-      await this.send({ to: toEmail, subject, html, fromName: companyName, fromEmail: companyEmail });
+      await this.send({ to: toEmail, subject, html, fromName: companyName, fromEmail: companyEmail, sendgridApiKey });
     }
   }
 
-  private async send(params: { to: string; subject: string; html: string; fromName: string; fromEmail: string }) {
-    const fromEmail = this.config.get<string>('SENDGRID_FROM_EMAIL') || params.fromEmail;
+  private async send(params: {
+    to: string;
+    subject: string;
+    html: string;
+    fromName: string;
+    fromEmail: string;
+    sendgridApiKey: string;
+  }) {
     try {
+      sgMail.setApiKey(params.sendgridApiKey);
       await sgMail.send({
         to: params.to,
-        from: { name: params.fromName, email: fromEmail },
+        from: { name: params.fromName, email: params.fromEmail },
         subject: params.subject,
         html: params.html,
       });

@@ -21,7 +21,6 @@ export class AmcReminderService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all active contracts with their company and contact info
     const contracts = await this.prisma.amcContract.findMany({
       where: { status: 'ACTIVE' },
       include: {
@@ -40,23 +39,29 @@ export class AmcReminderService {
       const diffMs = expiry.getTime() - today.getTime();
       const daysLeft = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-      // Check if daysLeft matches any reminder threshold
       if (!REMINDER_DAYS.includes(daysLeft)) continue;
 
-      // Check if reminder already sent for this threshold
       const alreadySent = contract.reminderLogs.some(
         (log) => log.daysBeforeExpiry === daysLeft,
       );
       if (alreadySent) continue;
+
+      // Skip if company has no sendgrid config
+      if (!contract.company?.sendgridApiKey || !contract.company?.emailFromAddress) {
+        this.logger.warn(`No email config for company ${contract.company?.name}, skipping contract ${contract.contractNumber}`);
+        continue;
+      }
 
       this.logger.log(`Sending ${daysLeft}-day reminder for contract ${contract.contractNumber}`);
 
       const customerName = contract.contact?.companyName ||
         `${contract.contact?.firstName} ${contract.contact?.lastName || ''}`.trim();
       const customerEmail = contract.contact?.email;
-      const companyEmail = contract.company?.email || '';
+      const companyEmail = contract.company.emailFromAddress;
       const companyPhone = contract.company?.phone || '';
-      const companyName = contract.company?.name || '';
+      const companyName = contract.company?.emailFromName || contract.company?.name || '';
+      const sendgridApiKey = contract.company.sendgridApiKey;
+      const internalEmails = contract.company?.internalEmailCC || [];
 
       const sentEmails: string[] = [];
 
@@ -73,17 +78,15 @@ export class AmcReminderService {
           companyName,
           companyEmail,
           companyPhone,
+          sendgridApiKey,
         });
         sentEmails.push(customerEmail);
       }
 
-      // Send to internal team (company email)
-      const teamEmails: string[] = [];
-      if (companyEmail) teamEmails.push(companyEmail);
-
-      if (teamEmails.length > 0) {
+      // Send to internal team
+      if (internalEmails.length > 0) {
         await this.emailService.sendAmcReminderToTeam({
-          toEmails: teamEmails,
+          toEmails: internalEmails,
           contractNumber: contract.contractNumber,
           customerName,
           expiryDate: expiry,
@@ -91,11 +94,12 @@ export class AmcReminderService {
           annualValue: Number(contract.annualValue),
           companyName,
           companyEmail,
+          sendgridApiKey,
         });
-        sentEmails.push(...teamEmails);
+        sentEmails.push(...internalEmails);
       }
 
-      // Log that reminder was sent
+      // Log reminder sent
       await this.prisma.amcReminderLog.create({
         data: {
           contractId: contract.id,
