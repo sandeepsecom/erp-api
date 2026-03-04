@@ -216,8 +216,10 @@ export class ProductsController {
           },
         });
         results.created++;
-      } catch (e: any) {
+    } catch (e: any) {
         results.skipped++;
+        results.errors = results.errors || [];
+        results.errors.push({ name: row.name, error: e.message });
       }
     }
     return { data: results };
