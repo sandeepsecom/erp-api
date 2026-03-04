@@ -221,5 +221,5 @@ export class ProductsController {
       }
     }
     return { data: results };
-}  }
+  }
 }
