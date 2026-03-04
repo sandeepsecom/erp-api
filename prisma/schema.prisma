@@ -120,16 +120,18 @@ model Company {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  userCompanies UserCompany[]
-  contacts      Contact[]
-  leads         Lead[]
-  activities    Activity[]
-  chatterMsgs   ChatterMessage[]
-  quotations    Quotation[]
-  salesOrders   SalesOrder[]
-  docSequences  DocSequence[]
-  products      Product[]
-  amcContracts  AmcContract[]
+  userCompanies  UserCompany[]
+  contacts       Contact[]
+  leads          Lead[]
+  activities     Activity[]
+  chatterMsgs    ChatterMessage[]
+  quotations     Quotation[]
+  salesOrders    SalesOrder[]
+  docSequences   DocSequence[]
+  products       Product[]
+  amcContracts   AmcContract[]
+  vendors        Vendor[]
+  purchaseOrders PurchaseOrder[]
 
   @@map("companies")
 }
@@ -225,52 +227,55 @@ model AuditLog {
 }
 
 model Product {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   companyId      String
   sku            String?
   name           String
   description    String?
-  uom            String   @default("NOS")
-  costPrice      Decimal  @default(0) @db.Decimal(15, 2)
-  salePrice      Decimal  @default(0) @db.Decimal(15, 2)
-  isStorable     Boolean  @default(true)
-  isService      Boolean  @default(false)
-  taxRate        Decimal  @default(18) @db.Decimal(5, 2)
+  uom            String    @default("NOS")
+  costPrice      Decimal   @default(0) @db.Decimal(15, 2)
+  salePrice      Decimal   @default(0) @db.Decimal(15, 2)
+  isStorable     Boolean   @default(true)
+  isService      Boolean   @default(false)
+  taxRate        Decimal   @default(18) @db.Decimal(5, 2)
   hsnCode        String?
-  sacCode           String?
-  category          String?
-  inputTaxRate      Decimal  @default(18) @db.Decimal(5, 2)
-  outputTaxRate     Decimal  @default(18) @db.Decimal(5, 2)
-  datasheetUrl      String?
-  trackSerial       Boolean  @default(false)
-  currentStock      Int      @default(0)
+  sacCode        String?
+  category       String?
+  inputTaxRate   Decimal   @default(18) @db.Decimal(5, 2)
+  outputTaxRate  Decimal   @default(18) @db.Decimal(5, 2)
+  datasheetUrl   String?
+  trackSerial    Boolean   @default(false)
+  currentStock   Int       @default(0)
   tallyStockItem String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  company        Company         @relation(fields: [companyId], references: [id])
-  quotationLines QuotationLine[]
-  orderLines     SalesOrderLine[]
-serialNumbers  SerialNumber[]
+  company            Company                @relation(fields: [companyId], references: [id])
+  quotationLines     QuotationLine[]
+  orderLines         SalesOrderLine[]
+  serialNumbers      SerialNumber[]
+  purchaseOrderLines PurchaseOrderLine[]
+  priceHistory       PurchasePriceHistory[]
 
   @@index([companyId])
   @@map("products")
 }
 
 model SerialNumber {
-  id          String   @id @default(uuid())
-  productId   String
-  companyId   String
-  serialNo    String
-  status      String   @default("IN_STOCK")
-  orderId     String?
-  contactId   String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  product     Product  @relation(fields: [productId], references: [id])
+  id        String   @id @default(uuid())
+  productId String
+  companyId String
+  serialNo  String
+  status    String   @default("IN_STOCK")
+  orderId   String?
+  contactId String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
 
   @@unique([companyId, serialNo])
   @@map("serial_numbers")
@@ -298,13 +303,13 @@ model Contact {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   deletedAt       DateTime?
-  amcContracts  AmcContract[]
 
-  company     Company      @relation(fields: [companyId], references: [id])
-  leads       Lead[]
-  activities  Activity[]
-  quotations  Quotation[]
-  salesOrders SalesOrder[]
+  company      Company       @relation(fields: [companyId], references: [id])
+  leads        Lead[]
+  activities   Activity[]
+  quotations   Quotation[]
+  salesOrders  SalesOrder[]
+  amcContracts AmcContract[]
 
   @@index([companyId])
   @@index([email])
@@ -431,6 +436,8 @@ model Quotation {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
+  quotationType  String         @default("SALES")
+  amcContractId  String?
 
   company     Company         @relation(fields: [companyId], references: [id])
   contact     Contact         @relation(fields: [contactId], references: [id])
@@ -446,29 +453,26 @@ model Quotation {
   @@index([companyId, state])
   @@index([contactId])
   @@map("quotations")
-
-  quotationType     String    @default("SALES")
-  amcContractId     String?
 }
 
 model QuotationLine {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   quotationId  String
   productId    String?
-  sequence     Int      @default(10)
+  sequence     Int     @default(10)
   description  String
-  qty          Decimal  @default(1) @db.Decimal(15, 3)
-  uom          String   @default("NOS")
-  unitPrice    Decimal  @default(0) @db.Decimal(15, 2)
-  costPrice    Decimal  @default(0) @db.Decimal(15, 2)
-  discountPct  Decimal  @default(0) @db.Decimal(5, 2)
-  taxPct       Decimal  @default(18) @db.Decimal(5, 2)
-  subtotal     Decimal  @default(0) @db.Decimal(15, 2)
-  taxAmount    Decimal  @default(0) @db.Decimal(15, 2)
-  lineTotal    Decimal  @default(0) @db.Decimal(15, 2)
-  marginAmount Decimal  @default(0) @db.Decimal(15, 2)
-  marginPct    Decimal  @default(0) @db.Decimal(7, 2)
-  isSection    Boolean  @default(false)
+  qty          Decimal @default(1) @db.Decimal(15, 3)
+  uom          String  @default("NOS")
+  unitPrice    Decimal @default(0) @db.Decimal(15, 2)
+  costPrice    Decimal @default(0) @db.Decimal(15, 2)
+  discountPct  Decimal @default(0) @db.Decimal(5, 2)
+  taxPct       Decimal @default(18) @db.Decimal(5, 2)
+  subtotal     Decimal @default(0) @db.Decimal(15, 2)
+  taxAmount    Decimal @default(0) @db.Decimal(15, 2)
+  lineTotal    Decimal @default(0) @db.Decimal(15, 2)
+  marginAmount Decimal @default(0) @db.Decimal(15, 2)
+  marginPct    Decimal @default(0) @db.Decimal(7, 2)
+  isSection    Boolean @default(false)
   notes        String?
 
   quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
@@ -502,11 +506,12 @@ model SalesOrder {
   updatedAt        DateTime   @updatedAt
   deletedAt        DateTime?
 
-  company     Company          @relation(fields: [companyId], references: [id])
-  quotation   Quotation?       @relation(fields: [quotationId], references: [id])
-  contact     Contact          @relation(fields: [contactId], references: [id])
-  salesperson User?            @relation("OrderSalesperson", fields: [salespersonId], references: [id])
-  lines       SalesOrderLine[]
+  company        Company          @relation(fields: [companyId], references: [id])
+  quotation      Quotation?       @relation(fields: [quotationId], references: [id])
+  contact        Contact          @relation(fields: [contactId], references: [id])
+  salesperson    User?            @relation("OrderSalesperson", fields: [salespersonId], references: [id])
+  lines          SalesOrderLine[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([companyId])
   @@index([companyId, state])
@@ -515,22 +520,22 @@ model SalesOrder {
 }
 
 model SalesOrderLine {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   salesOrderId    String
   productId       String?
   quotationLineId String?
-  sequence        Int      @default(10)
+  sequence        Int     @default(10)
   description     String
-  qty             Decimal  @default(1) @db.Decimal(15, 3)
-  uom             String   @default("NOS")
-  unitPrice       Decimal  @default(0) @db.Decimal(15, 2)
-  costPrice       Decimal  @default(0) @db.Decimal(15, 2)
-  taxPct          Decimal  @default(18) @db.Decimal(5, 2)
-  subtotal        Decimal  @default(0) @db.Decimal(15, 2)
-  taxAmount       Decimal  @default(0) @db.Decimal(15, 2)
-  lineTotal       Decimal  @default(0) @db.Decimal(15, 2)
-  qtyDelivered    Decimal  @default(0) @db.Decimal(15, 3)
-  qtyInvoiced     Decimal  @default(0) @db.Decimal(15, 3)
+  qty             Decimal @default(1) @db.Decimal(15, 3)
+  uom             String  @default("NOS")
+  unitPrice       Decimal @default(0) @db.Decimal(15, 2)
+  costPrice       Decimal @default(0) @db.Decimal(15, 2)
+  taxPct          Decimal @default(18) @db.Decimal(5, 2)
+  subtotal        Decimal @default(0) @db.Decimal(15, 2)
+  taxAmount       Decimal @default(0) @db.Decimal(15, 2)
+  lineTotal       Decimal @default(0) @db.Decimal(15, 2)
+  qtyDelivered    Decimal @default(0) @db.Decimal(15, 3)
+  qtyInvoiced     Decimal @default(0) @db.Decimal(15, 3)
 
   salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
   product    Product?   @relation(fields: [productId], references: [id])
@@ -562,20 +567,131 @@ model AmcContract {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
-  company   Company   @relation(fields: [companyId], references: [id])
-  contact   Contact   @relation(fields: [contactId], references: [id])
-reminderLogs AmcReminderLog[]
+  company        Company          @relation(fields: [companyId], references: [id])
+  contact        Contact          @relation(fields: [contactId], references: [id])
+  reminderLogs   AmcReminderLog[]
+  purchaseOrders PurchaseOrder[]
+
   @@map("amc_contracts")
 }
 
 model AmcReminderLog {
-  id           String   @id @default(uuid())
-  contractId   String
+  id               String   @id @default(uuid())
+  contractId       String
   daysBeforeExpiry Int
-  sentAt       DateTime @default(now())
-  sentToEmails String[]
-  contract     AmcContract @relation(fields: [contractId], references: [id])
+  sentAt           DateTime @default(now())
+  sentToEmails     String[]
+
+  contract AmcContract @relation(fields: [contractId], references: [id])
 
   @@unique([contractId, daysBeforeExpiry])
   @@map("amc_reminder_logs")
+}
+
+model Vendor {
+  id                String    @id @default(uuid())
+  companyId         String
+  name              String
+  contactPerson     String?
+  email             String?
+  phone             String?
+  whatsapp          String?
+  gstin             String?
+  pan               String?
+  addressLine1      String?
+  city              String?
+  state             String?
+  pincode           String?
+  bankName          String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  bankAccountName   String?
+  bankBranch        String?
+  notes             String?
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  company        Company                @relation(fields: [companyId], references: [id])
+  purchaseOrders PurchaseOrder[]
+  priceHistory   PurchasePriceHistory[]
+
+  @@index([companyId])
+  @@map("vendors")
+}
+
+model PurchaseOrder {
+  id            String    @id @default(uuid())
+  companyId     String
+  name          String
+  vendorId      String
+  salesOrderId  String?
+  amcContractId String?
+  status        String    @default("DRAFT")
+  expectedDate  DateTime?
+  notes         String?
+  currency      String    @default("INR")
+  subtotal      Decimal   @default(0) @db.Decimal(15, 2)
+  taxAmount     Decimal   @default(0) @db.Decimal(15, 2)
+  totalAmount   Decimal   @default(0) @db.Decimal(15, 2)
+  sentAt        DateTime?
+  confirmedAt   DateTime?
+  receivedAt    DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  company      Company                @relation(fields: [companyId], references: [id])
+  vendor       Vendor                 @relation(fields: [vendorId], references: [id])
+  salesOrder   SalesOrder?            @relation(fields: [salesOrderId], references: [id])
+  amcContract  AmcContract?           @relation(fields: [amcContractId], references: [id])
+  lines        PurchaseOrderLine[]
+  priceHistory PurchasePriceHistory[]
+
+  @@index([companyId])
+  @@index([vendorId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLine {
+  id              String  @id @default(uuid())
+  purchaseOrderId String
+  productId       String?
+  sequence        Int     @default(10)
+  description     String
+  qty             Decimal @default(1) @db.Decimal(15, 3)
+  uom             String  @default("NOS")
+  unitPrice       Decimal @default(0) @db.Decimal(15, 2)
+  taxPct          Decimal @default(18) @db.Decimal(5, 2)
+  subtotal        Decimal @default(0) @db.Decimal(15, 2)
+  taxAmount       Decimal @default(0) @db.Decimal(15, 2)
+  lineTotal       Decimal @default(0) @db.Decimal(15, 2)
+  qtyReceived     Decimal @default(0) @db.Decimal(15, 3)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product?      @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_lines")
+}
+
+model PurchasePriceHistory {
+  id              String   @id @default(uuid())
+  companyId       String
+  productId       String
+  vendorId        String
+  purchaseOrderId String
+  unitPrice       Decimal  @db.Decimal(15, 2)
+  qty             Decimal  @db.Decimal(15, 3)
+  date            DateTime @default(now())
+
+  product       Product       @relation(fields: [productId], references: [id])
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  @@index([productId])
+  @@index([vendorId])
+  @@map("purchase_price_history")
 }

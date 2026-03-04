@@ -10,6 +10,8 @@ import { CrmModule } from './modules/crm/crm.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { ProductsModule } from './modules/products/products.module';
 import { AmcModule } from './modules/amc/amc.module';
+import { VendorsModule } from './modules/vendors/vendors.module';
+import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { AmcModule } from './modules/amc/amc.module';
     SalesModule,
     ProductsModule,
     AmcModule,
+    VendorsModule,
+    PurchaseOrdersModule,
   ],
 })
 export class AppModule {}
