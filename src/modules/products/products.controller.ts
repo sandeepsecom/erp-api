@@ -187,4 +187,39 @@ export class ProductsController {
     }
     return { data: serial };
   }
+  @Post('import')
+  async importProducts(@CurrentUser() user: any, @Body() body: any) {
+    const rows = body.products || [];
+    const results: any = { created: 0, skipped: 0 };
+    for (const row of rows) {
+      if (!row.name) continue;
+      try {
+        await this.prisma.product.create({
+          data: {
+            companyId: user.activeCompanyId,
+            name: row.name,
+            sku: row.sku || null,
+            description: row.description || null,
+            category: row.category || null,
+            uom: row.uom || 'NOS',
+            costPrice: parseFloat(row.costPrice) || 0,
+            salePrice: parseFloat(row.salePrice) || 0,
+            taxRate: parseFloat(row.outputTaxRate) || 18,
+            inputTaxRate: parseFloat(row.inputTaxRate) || 18,
+            outputTaxRate: parseFloat(row.outputTaxRate) || 18,
+            hsnCode: row.hsnCode || null,
+            sacCode: row.sacCode || null,
+            isService: row.isService === 'true' || row.isService === true,
+            isStorable: row.isStorable !== 'false' && row.isStorable !== false,
+            trackSerial: row.trackSerial === 'true' || row.trackSerial === true,
+            currentStock: parseInt(row.currentStock) || 0,
+          },
+        });
+        results.created++;
+      } catch (e: any) {
+        results.skipped++;
+      }
+    }
+    return { data: results };
+  }
 }
